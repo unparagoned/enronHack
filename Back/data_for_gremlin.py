@@ -17,15 +17,22 @@ from_and_to = set(flattened_from_list + flattened_to_list)
 # all emails
 all_emails = list(from_and_to)
 
+# replace blanks with dummies
+all_emails = ['missing' if len(x) == 0 else x for x in all_emails]
+
 # all emails for gremlin
 gremlin_emails = ["""g.addV('person').property('id', '""" + str(i) + """')""" for i in all_emails]
 
 # zipping columns
 emails['tuples'] = list(zip(emails['from'], emails['to_parsed']))
 
+tuples = emails['tuples'].tolist()
+
 tuples_121 = []
 for tpl in tuples:
     for x in tpl[1]:
        tuples_121.append((tpl[0].strip(),x.strip()))
 
-gremlin_tuples = ["""g.V('""" + str(x) + """').addE('emails').to(g.V('""" + str(y) + """')).property('date', '13/01/02').property('subject', 'Trump is great')""" for x,y in tuples_121]
+tuples_121_rna = [(x,'missing') if len(y) == 0 else (x,y) for x,y in tuples_121]
+
+gremlin_tuples = ["""g.V('""" + str(x) + """').addE('emails').to(g.V('""" + str(y) + """')).property('date', '13/01/02').property('subject', 'Trump is great')""" for x,y in tuples_121_rna]
