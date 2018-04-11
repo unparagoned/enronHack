@@ -98,7 +98,7 @@ def execute_drop_operations(client):
 
 try:
     client = client.Client('wss://enronhack.gremlin.cosmosdb.azure.com:443/','g', 
-        username="/dbs/enron/colls/enron", 
+        username="/dbs/mail/colls/mail", 
         password="uYf1V0bSUHF5HSb5e0qgIyFTVONwyAXf4BRFbs5Z2rDNlFaTauta2ctQbubdNy2bMaQpQQOdyB8Laza01IeWNA==",
 	message_serializer=serializer.GraphSONSerializersV2d0()        
         )
