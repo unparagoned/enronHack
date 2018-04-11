@@ -21,8 +21,9 @@ all_emails = list(from_and_to)
 
 # replace blanks with dummies
 all_emails = list(set(['missing' if len(x) == 0 else re.sub(r'([^A-Za-z0-9\._@])',r'',x) for x in all_emails]))
+all_emails = all_emails[:100]
 # all emails for gremlin
-gremlin_emails = ["""g.addV('person').property('id', '""" + str(i) + """')""" for i in all_emails]
+
 
 # zipping columns
 emails['tuples'] = list(zip(emails['from'], emails['to_parsed']))
@@ -38,6 +39,15 @@ tuples_121_rna = [(x,'missing') if len(y) == 0 else (x,y) for x,y in tuples_121]
 
 gremlin_tuples = ["""g.V('""" + str(x) + """').addE('emails').to(g.V('""" + str(y) + """')).property('date', '13/01/02').property('subject', 'Trump is great')""" for x,y in tuples_121_rna]
 
+gremlin_temp = []
+all_emails = []
+for x,y in tuples_121_rna[:100]:
+    gremlin_temp.append("""g.V('""" + str(x) + """').addE('emails').to(g.V('""" + str(y) + """')).property('date', '13/01/02').property('subject', 'Trump is great')""")
+    all_emails.append(x)
+    all_emails.append(y)
+all_emails = list(set(all_emails))
+gremlin_emails = ["""g.addV('person').property('id', '""" + str(i) + """')""" for i in all_emails]
+gremlin_typles = gremlin_temp
 
 _gremlin_cleanup_graph = "g.V().drop()"
 
@@ -78,26 +88,34 @@ def cleanup_graph(client):
     print("\n")
 
 def insert_vertices(client):
+
     for query in gremlin_emails:
-        print("\tRunning this Gremlin query:\n\t{0}\n".format(query))
-        callback = client.submitAsync(query)
-        if callback.result() is not None:
-            print("\tInserted this vertex:\n\t{0}\n".format(callback.result().one()))
-        else:
-            print("Something went wrong with this query: {0}".format(query))
+    
+        try:
+            print("\tRunning this Gremlin query:\n\t{0}\n".format(query))
+            callback = client.submitAsync(query)
+            if callback.result() is not None:
+                print("\tInserted this vertex:\n\t{0}\n".format(callback.result().one()))
+            else:
+                print("Something went wrong with this query: {0}".format(query))
+
+        except:
+            pass
     print("\n")
-	
 
 def insert_edges(client):
     for query in gremlin_tuples:
-        #print("\tRunning this Gremlin query:\n\t{0}\n".format(query))
-        callback = client.submitAsync(query)
-        '''if callback.result() is not None:
-            print("\tInserted this edge:\n\t{0}\n".format(callback.result().one()))
-        else:
-            print("Something went wrong with this query:\n\t{0}".format(query))
+        try:
+            print("\tRunning this Gremlin query:\n\t{0}\n".format(query))
+            callback = client.submitAsync(query)
+            if callback.result() is not None:
+                print("\tInserted this edge:\n\t{0}\n".format(callback.result().one()))
+            else:
+                print("Something went wrong with this query:\n\t{0}".format(query))
+        except:
+            pass
     print("\n")
-	'''
+	
 def update_vertices(client):
     for query in _gremlin_update_vertices:
         print("\tRunning this Gremlin query:\n\t{0}\n".format(query))
