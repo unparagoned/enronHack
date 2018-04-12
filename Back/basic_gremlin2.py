@@ -9,7 +9,7 @@ def san(in_string):
 
     return out_string
 
-emails = pd.read_csv('small_email_data_dates.csv', index_col = 0)
+emails = pd.read_csv('small_email_data_dates2.csv', index_col = 0)
 
 #for email in emails:
         
@@ -170,10 +170,10 @@ def execute_drop_operations(client):
         print("\n")
 
 try:
-    client = client.Client('wss://enronhack.gremlin.cosmosdb.azure.com:443/','g', 
-        username="/dbs/mail/colls/mail", 
-        password="uYf1V0bSUHF5HSb5e0qgIyFTVONwyAXf4BRFbs5Z2rDNlFaTauta2ctQbubdNy2bMaQpQQOdyB8Laza01IeWNA==",
-        #password="YrQO67TAgY1saqavrMebPZgvBdZ7h6fhOtEr3e6xdtozsrOmtgfdtLzTgWyL7hbZDEgzf0KDNo8Z32ejd5XtEg==",
+    client = client.Client('wss://brian.gremlin.cosmosdb.azure.com:443/','g', 
+        username="/dbs/full/colls/full", 
+        #password="uYf1V0bSUHF5HSb5e0qgIyFTVONwyAXf4BRFbs5Z2rDNlFaTauta2ctQbubdNy2bMaQpQQOdyB8Laza01IeWNA==",
+        password="YrQO67TAgY1saqavrMebPZgvBdZ7h6fhOtEr3e6xdtozsrOmtgfdtLzTgWyL7hbZDEgzf0KDNo8Z32ejd5XtEg==",
 	message_serializer=serializer.GraphSONSerializersV2d0()        
         )
     

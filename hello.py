@@ -1,63 +1,12 @@
-import pandas as pd
+
+
+
+
 from gremlin_python.driver import client, serializer
 import sys, traceback
-from ast import literal_eval
-import re
 
-def san(in_string):
-    out_string = re.sub(r'([^A-Za-z0-9\._@ ])',r'',in_string)
-
-    return out_string
-
-emails = pd.read_csv('small_email_data_dates.csv', index_col = 0)
-
-#for email in emails:
-        
-
-# parse list of recipients
-emails['to_parsed'] = emails['to'].apply(literal_eval)
-
-to_list = emails['to_parsed'].tolist()
-flattened_to_list = [y.strip() for x in to_list for y in x]
-
-from_list = emails['from'].tolist()
-flattened_from_list = [y.strip() for y in from_list]
-
-from_and_to = set(flattened_from_list + flattened_to_list)
-
-# all emails
-all_emails = list(from_and_to)
-
-# replace blanks with dummies
-all_emails = list(set(['missing' if len(x) == 0 else re.sub(r'([^A-Za-z0-9\._@])',r'',x) for x in all_emails]))
-#all_emails = all_emails[:100]
-# all emails for gremlin
-
-
-# zipping columns
-emails['tuples'] = list(zip(emails['from'], emails['to_parsed'], emails['subject'], emails['date_parsed']))
-
-tuples = emails['tuples'].tolist()
-
-tuples_121 = []
-for tpl in tuples:
-    for x in tpl[1]:
-       tuples_121.append((tpl[0].strip(),x.strip(),tpl[2],tpl[3]))
-
-tuples_121_rna = [(san(x),'missing', san(k), san(l)) if len(y) == 0 else (san(x),san(y),san(k),san(l)) for x,y,k,l in tuples_121]
-
-gremlin_tuples = ["""g.V('""" + str(x) + """').addE('emails').to(g.V('""" + str(y) + """')).property('date', '""" + str(l) + """').property('subject', '""" + str(k) + """')""" for x,y,k,l in tuples_121_rna]
-
-gremlin_temp = []
-all_emails = []
-for x,y,k,l in tuples_121_rna:
-    gremlin_temp.append(""""g.V('""" + str(x) + """').addE('emails').to(g.V('""" + str(y) + """')).property('date', '""" + str(l) + """').property('subject', '""" + str(k) + """')""")
-    all_emails.append(x)
-    all_emails.append(y)
-all_emails = list(set(all_emails))
-gremlin_emails = ["""g.addV('person').property('id', '""" + str(i) + """')""" for i in all_emails]
-gremlin_typles = gremlin_temp
-
+from flask import Flask
+app = Flask(__name__)
 _gremlin_cleanup_graph = "g.V().drop()"
 
 _gremlin_insert_vertices = [
@@ -90,48 +39,32 @@ _gremlin_drop_operations = {
 }
 
 def cleanup_graph(client):
-    #print("\tRunning this Gremlin query:\n\t{0}".format(_gremlin_cleanup_graph))
+    print("\tRunning this Gremlin query:\n\t{0}".format(_gremlin_cleanup_graph))
     callback = client.submitAsync(_gremlin_cleanup_graph)
     if callback.result() is not None:
         print("\tCleaned up the graph!")
     print("\n")
 
 def insert_vertices(client):
-    index = 0
-    for query in gremlin_emails:
-    
-        if (index % 500) == 0:
-            print("\tRunning this Gremlin query:\n\t{0}\n".format(query))
-        index += 1
+    for query in _gremlin_insert_vertices:
+        print("\tRunning this Gremlin query:\n\t{0}\n".format(query))
         callback = client.submitAsync(query)
         if callback.result() is not None:
-            none = callback
-            #print("\tInserted this vertex:\n\t{0}\n".format(callback.result().one()))
+            print("\tInserted this vertex:\n\t{0}\n".format(callback.result().one()))
         else:
             print("Something went wrong with this query: {0}".format(query))
-
-        '''except:
-            pass
-            continue
-'''
     print("\n")
 
 def insert_edges(client):
-    index = 0
-    for query in gremlin_tuples:
-        if (index % 500) == 0:
-            print("\tRunning this Gremlin query:\n\t{0}\n".format(query))
-        index += 1
+    for query in _gremlin_insert_edges:
+        print("\tRunning this Gremlin query:\n\t{0}\n".format(query))
         callback = client.submitAsync(query)
         if callback.result() is not None:
-            none = callback
-            #iprint("\tInserted this edge:\n\t{0}\n".format(callback.result().one()))
+            print("\tInserted this edge:\n\t{0}\n".format(callback.result().one()))
         else:
             print("Something went wrong with this query:\n\t{0}".format(query))
-        #except:
-         #   pass
     print("\n")
-	
+
 def update_vertices(client):
     for query in _gremlin_update_vertices:
         print("\tRunning this Gremlin query:\n\t{0}\n".format(query))
@@ -146,10 +79,10 @@ def count_vertices(client):
     print("\tRunning this Gremlin query:\n\t{0}".format(_gremlin_count_vertices))
     callback = client.submitAsync(_gremlin_count_vertices)
     if callback.result() is not None:
-        print("\tCount of vertices: {0}".format(callback.result().one()))
+        msg = str(callback.result().one())
     else:
         print("Something went wrong with this query: {0}".format(_gremlin_count_vertices))
-    print("\n")
+    return msg
 
 def execute_traversals(client):
     for key in _gremlin_traversals:
@@ -168,14 +101,9 @@ def execute_drop_operations(client):
         for result in callback.result():
             print(result)
         print("\n")
-
+"""
 try:
-    client = client.Client('wss://enronhack.gremlin.cosmosdb.azure.com:443/','g', 
-        username="/dbs/mail/colls/mail", 
-        password="uYf1V0bSUHF5HSb5e0qgIyFTVONwyAXf4BRFbs5Z2rDNlFaTauta2ctQbubdNy2bMaQpQQOdyB8Laza01IeWNA==",
-        #password="YrQO67TAgY1saqavrMebPZgvBdZ7h6fhOtEr3e6xdtozsrOmtgfdtLzTgWyL7hbZDEgzf0KDNo8Z32ejd5XtEg==",
-	message_serializer=serializer.GraphSONSerializersV2d0()        
-        )
+
     
     print("Welcome to Azure Cosmos DB + Gremlin on Python!")
     
@@ -190,7 +118,7 @@ try:
     # Create edges between vertices
     input("Now, let's add some edges between the vertices. Press any key to continue...")
     insert_edges(client)
-    """ 
+    
     # Execute traversals and get results 
     input("Cool! Let's run some traversals on our graph. Press any key to continue...")
     execute_traversals(client)
@@ -211,7 +139,6 @@ try:
     # Count all vertices again
     input("How many vertices do we have left? Press any key to continue...")
     count_vertices(client)
-    """
 except Exception as e:
     print('There was an exception: {0}'.format(e))
     traceback.print_exc(file=sys.stdout)
@@ -219,3 +146,19 @@ except Exception as e:
 
 print("\nAnd that's all! Sample complete")
 input("Press Enter to continue...")
+"""
+def grem():
+    msg = "test"    
+    return msg
+
+@app.route("/")
+def hello():
+    
+    from gremlin_python.driver import client, serializer
+    client = client.Client('wss://enronhack.gremlin.cosmosdb.azure.com:443/','g', 
+        username="/dbs/mail/colls/mail", 
+        password="uYf1V0bSUHF5HSb5e0qgIyFTVONwyAXf4BRFbs5Z2rDNlFaTauta2ctQbubdNy2bMaQpQQOdyB8Laza01IeWNA==",
+	message_serializer=serializer.GraphSONSerializersV2d0()        
+        )
+    msg = count_vertices(client)
+    return msg
