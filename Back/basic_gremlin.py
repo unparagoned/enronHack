@@ -3,6 +3,12 @@ from gremlin_python.driver import client, serializer
 import sys, traceback
 from ast import literal_eval
 import re
+
+def san(in_string):
+    out_string = re.sub(r'([^A-Za-z0-9\._@ ])',r'',in_string)
+
+    return out_string
+
 emails = pd.read_csv('small_email_data_dates.csv', index_col = 0)
 
 #for email in emails:
@@ -38,7 +44,7 @@ for tpl in tuples:
     for x in tpl[1]:
        tuples_121.append((tpl[0].strip(),x.strip(),tpl[2],tpl[3]))
 
-tuples_121_rna = [(x,'missing', k, l) if len(y) == 0 else (x,y,k,l) for x,y,k,l in tuples_121]
+tuples_121_rna = [(san(x),'missing', san(k), san(l)) if len(y) == 0 else (san(x),san(y),san(k),san(l)) for x,y,k,l in tuples_121]
 
 gremlin_tuples = ["""g.V('""" + str(x) + """').addE('emails').to(g.V('""" + str(y) + """')).property('date', '""" + str(l) + """').property('subject', '""" + str(k) + """')""" for x,y,k,l in tuples_121_rna]
 
@@ -160,8 +166,9 @@ def execute_drop_operations(client):
 
 try:
     client = client.Client('wss://enronhack.gremlin.cosmosdb.azure.com:443/','g', 
-        username="/dbs/mail/colls/mail", 
+        username="/dbs/enron/colls/enron", 
         password="uYf1V0bSUHF5HSb5e0qgIyFTVONwyAXf4BRFbs5Z2rDNlFaTauta2ctQbubdNy2bMaQpQQOdyB8Laza01IeWNA==",
+        #password="YrQO67TAgY1saqavrMebPZgvBdZ7h6fhOtEr3e6xdtozsrOmtgfdtLzTgWyL7hbZDEgzf0KDNo8Z32ejd5XtEg==",
 	message_serializer=serializer.GraphSONSerializersV2d0()        
         )
     
